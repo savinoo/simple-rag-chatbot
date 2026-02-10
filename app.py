@@ -49,18 +49,17 @@ with st.sidebar:
 
     # Option B: manifest-driven ingestion (local)
     st.subheader("Manifest-driven ingestion (local)")
-    st.caption("Use a local manifest JSON like manifest.example.json and set MANIFEST_PATH env var.")
+    st.caption("Supports JSON (manifest.example.json) and YAML (manifest.example.yaml).")
     manifest_path = st.text_input("MANIFEST_PATH", value=(config.MANIFEST_PATH or ""))
     if manifest_path and st.button("Load from Manifest"):
         with st.spinner("Loading manifest + indexing..."):
             try:
-                import json
-                from pathlib import Path
+                from manifest_loader import load_manifest
 
-                m = json.loads(Path(manifest_path).read_text(encoding="utf-8"))
-                st.session_state.rag.load_manifest_paths(m["documents"])
+                docs = load_manifest(manifest_path)
+                st.session_state.rag.load_manifest_paths([d.path for d in docs])
                 st.session_state.documents_loaded = True
-                st.success(f"✅ Loaded {len(m['documents'])} document(s) from manifest")
+                st.success(f"✅ Loaded {len(docs)} document(s) from manifest")
             except Exception as e:
                 st.error(f"❌ Error: {str(e)}")
 
