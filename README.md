@@ -71,6 +71,13 @@ export EMBEDDINGS_PROVIDER=local
 > ```bash
 > export EMBEDDINGS_PROVIDER=local
 > ```
+>
+> If you get a Gemini model NOT_FOUND (404), you likely need to set a model your key supports:
+>
+> ```bash
+> python -c "import os, google.generativeai as genai; genai.configure(api_key=os.environ['GOOGLE_API_KEY']); print('\\n'.join([m.name + ' :: ' + ','.join(m.supported_generation_methods) for m in genai.list_models()]))"
+> export GEMINI_MODEL=models/gemini-1.0-pro
+> ```
 
 What it does:
 - Loads docs from `manifest.example.yaml`
@@ -106,10 +113,24 @@ export MANIFEST_PATH=manifest.example.json
 ## Configuration
 
 Configuration is via env vars (see `config.py`):
-- `MODEL_NAME` (default: `gpt-4o-mini`)
+
+Core:
+- `PROVIDER` = `openai` | `gemini`
+- `MODEL_NAME` (default depends on provider)
+- `OPENAI_API_KEY` (when `PROVIDER=openai`)
+- `GOOGLE_API_KEY` (when `PROVIDER=gemini`)
+
+Embeddings:
+- `EMBEDDINGS_PROVIDER` = `openai` | `gemini` | `local` (recommended for Gemini)
+- `LOCAL_EMBEDDINGS_MODEL` (default: `all-MiniLM-L6-v2`)
+
+RAG:
 - `K_DOCUMENTS` (default: `5`)
 - `RETRIEVAL_THRESHOLD` (default: `0.35`)
+
+Logging:
 - `LOG_PATH` (default: `logs/qa.jsonl`)
+- `AUDIT_DB_PATH` (default: `logs/audit.db`)
 
 ## Retrieval evaluation (recall@k)
 

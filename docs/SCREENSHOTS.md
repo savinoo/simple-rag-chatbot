@@ -23,6 +23,13 @@ Goal: capture 3–5 screenshots that prove: correctness, citations, refusal beha
   - The audit table (status, best_score, sources)
   - An opened answer detail by log id.
 
+## 4b) Role filtering (demo)
+- In the sidebar, set Role to `cs`.
+- Ask a question about Returns.
+- Screenshot the answer + citations.
+- Switch Role to `warehouse` and repeat.
+- Screenshot the difference (if you add a doc restricted to warehouse).
+
 ## 5) Eval report
 - Run eval:
   - `export MANIFEST_PATH=manifest.example.yaml`

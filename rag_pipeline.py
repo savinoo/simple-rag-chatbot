@@ -251,7 +251,8 @@ class RAGPipeline:
         threshold = float(getattr(config, "RETRIEVAL_THRESHOLD", 0.35))
 
         retrieved = self._retrieve(question, k=k, role=role)
-        best_score = retrieved[0].score if retrieved else 0.0
+        best_score_raw = retrieved[0].score if retrieved else 0.0
+        best_score = _normalize_retrieval_score(best_score_raw)
 
         if not retrieved or best_score < threshold:
             answer = "Not in KB yet. Please add the relevant SOP/policy document to the knowledge base."
@@ -260,6 +261,7 @@ class RAGPipeline:
                 {
                     "question": question,
                     "best_score": best_score,
+                    "best_score_raw": best_score_raw,
                     "k": k,
                     "status": "not_in_kb",
                     "sources": sources,
@@ -336,6 +338,7 @@ class RAGPipeline:
             {
                 "question": question,
                 "best_score": best_score,
+                "best_score_raw": best_score_raw,
                 "k": k,
                 "status": "answered",
                 "sources": [s["ref"] for s in used_sources],
@@ -368,12 +371,42 @@ class RAGPipeline:
                 {
                     "id": r.idx,
                     "score": r.score,
+                    "score_norm": _normalize_retrieval_score(r.score),
                     "source": md.get("source"),
                     "chunk": md.get("chunk"),
                     "page": md.get("page"),
                 }
             )
         return out
+
+
+def _normalize_retrieval_score(score: float) -> float:
+    """Normalize various backend score conventions to a 0..1-ish relevance.
+
+    `similarity_search_with_relevance_scores` is *supposed* to return relevance in [0,1],
+    but in practice some setups return cosine similarity (-1..1) or distances.
+
+    This heuristic keeps the safety gate usable across providers/embeddings.
+    """
+
+    try:
+        s = float(score)
+    except Exception:
+        return 0.0
+
+    # Already a probability-like relevance
+    if 0.0 <= s <= 1.0:
+        return s
+
+    # Cosine similarity in [-1, 1]
+    if -1.0 <= s <= 1.0:
+        return max(0.0, min(1.0, (s + 1.0) / 2.0))
+
+    # Distance (>=0). Smaller is better.
+    if s >= 0:
+        return 1.0 / (1.0 + s)
+
+    return 0.0
 
 
 def _message_to_text(msg) -> str:
