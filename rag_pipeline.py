@@ -315,7 +315,7 @@ class RAGPipeline:
             self.llm.temperature = float(temperature)
 
         msg = self.llm.invoke([{"role": "system", "content": system}, {"role": "user", "content": user}])
-        answer_text = msg.content.strip()
+        answer_text = _message_to_text(msg).strip()
 
         # If model didn't cite anything, enforce safe behavior
         if "[S" not in answer_text and "Not in KB yet" not in answer_text:
@@ -373,6 +373,34 @@ class RAGPipeline:
                 }
             )
         return out
+
+
+def _message_to_text(msg) -> str:
+    """LangChain message content can be str or structured list (provider-dependent).
+
+    Gemini adapters sometimes return `content` as a list of parts.
+    This normalizes it into a plain string.
+    """
+
+    content = getattr(msg, "content", msg)
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for p in content:
+            if isinstance(p, str):
+                parts.append(p)
+            elif isinstance(p, dict):
+                # common shape: {"type":"text","text":"..."}
+                t = p.get("text") or p.get("content")
+                if isinstance(t, str):
+                    parts.append(t)
+                else:
+                    parts.append(json.dumps(p, ensure_ascii=False))
+            else:
+                parts.append(str(p))
+        return "\n".join(parts)
+    return str(content)
 
 
 def _extract_citation_tokens(text: str) -> List[str]:
