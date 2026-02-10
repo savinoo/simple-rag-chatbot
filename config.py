@@ -22,6 +22,7 @@ MANIFEST_PATH = os.getenv("MANIFEST_PATH")
 
 # Logging
 LOG_PATH = os.getenv("LOG_PATH", "logs/qa.jsonl")
+AUDIT_DB_PATH = os.getenv("AUDIT_DB_PATH", "logs/audit.db")
 
 # Streamlit settings
 PAGE_TITLE = os.getenv("PAGE_TITLE", "RAG Chatbot")

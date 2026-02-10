@@ -26,6 +26,7 @@ from langchain_community.vectorstores import Chroma
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 import config
+from audit_sqlite import QALogRecord, SQLiteAudit, now_iso
 
 
 @dataclass
@@ -35,8 +36,7 @@ class RetrievedChunk:
     idx: int  # 1-based index for citations
 
 
-def _now_iso() -> str:
-    return time.strftime("%Y-%m-%dT%H:%M:%S%z")
+# (moved to audit_sqlite.now_iso)
 
 
 class JSONLLogger:
@@ -47,7 +47,7 @@ class JSONLLogger:
         os.makedirs(os.path.dirname(path), exist_ok=True)
 
     def log(self, record: dict) -> None:
-        record = {"ts": _now_iso(), **record}
+        record = {"ts": now_iso(), **record}
         with open(self.path, "a", encoding="utf-8") as f:
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
@@ -73,6 +73,7 @@ class RAGPipeline:
         )
 
         self.logger = logger or JSONLLogger(getattr(config, "LOG_PATH", "logs/qa.jsonl"))
+        self.audit = SQLiteAudit(getattr(config, "AUDIT_DB_PATH", "logs/audit.db"))
 
     # ----------------------
     # Ingestion
@@ -188,6 +189,17 @@ class RAGPipeline:
                     "answer": answer,
                 }
             )
+            self.audit.log(
+                QALogRecord(
+                    ts=now_iso(),
+                    question=question,
+                    status="not_in_kb",
+                    best_score=best_score,
+                    k=k,
+                    sources=sources,
+                    answer=answer,
+                )
+            )
             return {"answer": answer, "sources": sources, "retrieval": self._serialize_retrieval(retrieved)}
 
         # Build context block with stable citation IDs
@@ -242,6 +254,17 @@ class RAGPipeline:
                 "sources": [s["ref"] for s in used_sources],
                 "answer": answer_text,
             }
+        )
+        self.audit.log(
+            QALogRecord(
+                ts=now_iso(),
+                question=question,
+                status="answered",
+                best_score=best_score,
+                k=k,
+                sources=[s["ref"] for s in used_sources],
+                answer=answer_text,
+            )
         )
 
         return {

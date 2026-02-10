@@ -74,47 +74,66 @@ with st.sidebar:
         st.session_state.messages = []
         st.rerun()
 
-# Main chat interface
-if not st.session_state.documents_loaded:
-    st.info("👈 Upload documents in the sidebar to get started.")
-else:
-    # Display chat messages
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-    
-    # Chat input
-    if prompt := st.chat_input("Ask a question about your documents..."):
-        # Add user message
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
-        
-        # Generate response
-        with st.chat_message("assistant"):
-            with st.spinner("Thinking..."):
-                try:
-                    response = st.session_state.rag.query(
-                        prompt,
-                        temperature=temperature,
-                        k=k_docs
-                    )
-                    st.markdown(response["answer"])
+# Main interface (tabs)
+chat_tab, admin_tab = st.tabs(["💬 Chat", "🛠️ Admin"])
 
-                    # Show sources (refs) + retrieval debug
-                    with st.expander("📄 Sources"):
-                        for i, ref in enumerate(response.get("sources", []), 1):
-                            st.markdown(f"**Source {i}:** {ref}")
+with chat_tab:
+    if not st.session_state.documents_loaded:
+        st.info("👈 Upload documents in the sidebar to get started.")
+    else:
+        # Display chat messages
+        for message in st.session_state.messages:
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
 
-                    with st.expander("🔎 Retrieval (debug)"):
-                        st.json(response.get("retrieval", []))
+        # Chat input
+        if prompt := st.chat_input("Ask a question about your documents..."):
+            st.session_state.messages.append({"role": "user", "content": prompt})
+            with st.chat_message("user"):
+                st.markdown(prompt)
 
-                    st.session_state.messages.append({
-                        "role": "assistant",
-                        "content": response["answer"]
-                    })
-                except Exception as e:
-                    st.error(f"❌ Error: {str(e)}")
+            with st.chat_message("assistant"):
+                with st.spinner("Thinking..."):
+                    try:
+                        response = st.session_state.rag.query(
+                            prompt,
+                            temperature=temperature,
+                            k=k_docs,
+                        )
+                        st.markdown(response["answer"])
+
+                        with st.expander("📄 Sources"):
+                            for i, ref in enumerate(response.get("sources", []), 1):
+                                st.markdown(f"**Source {i}:** {ref}")
+
+                        with st.expander("🔎 Retrieval (debug)"):
+                            st.json(response.get("retrieval", []))
+
+                        st.session_state.messages.append({
+                            "role": "assistant",
+                            "content": response["answer"],
+                        })
+                    except Exception as e:
+                        st.error(f"❌ Error: {str(e)}")
+
+with admin_tab:
+    st.subheader("Audit log (SQLite)")
+    st.caption("Shows the latest Q/A entries with status, confidence, and sources.")
+
+    try:
+        recent = st.session_state.rag.audit.recent(limit=25)
+        st.dataframe(recent, use_container_width=True)
+
+        selected = st.number_input("View answer by log id", min_value=0, value=0, step=1)
+        if selected:
+            ans = st.session_state.rag.audit.get_answer(int(selected))
+            if ans:
+                st.markdown("### Answer")
+                st.code(ans)
+            else:
+                st.info("No answer found for that id.")
+    except Exception as e:
+        st.error(f"Audit log error: {e}")
 
 # Footer
 st.divider()
