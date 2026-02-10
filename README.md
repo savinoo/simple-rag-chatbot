@@ -60,6 +60,8 @@ export GOOGLE_API_KEY=...
 ./run_demo.sh
 ```
 
+> Gemini uses `GOOGLE_API_KEY` (not `GEMINI_API_KEY`).
+
 What it does:
 - Loads docs from `manifest.example.yaml`
 - Runs `eval_retrieval.py` and writes `reports/latest/report.md`
