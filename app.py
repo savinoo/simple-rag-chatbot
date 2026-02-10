@@ -141,6 +141,13 @@ with admin_tab:
                 st.code(ans)
             else:
                 st.info("No answer found for that id.")
+
+        st.divider()
+        st.subheader("Sync (stub)")
+        st.caption("Local-first: rebuilds index from manifest and tracks doc hashes + sync runs.")
+        st.write("Run from terminal:")
+        st.code("python sync_cli.py --manifest manifest.example.yaml")
+
     except Exception as e:
         st.error(f"Audit log error: {e}")
 
