@@ -48,6 +48,29 @@ streamlit run app.py
 
 This repo ships with small demo docs + a golden set so you can generate a report and launch the UI quickly.
 
+### Environment variables (LLM + embeddings)
+
+Minimum required:
+
+**Gemini**
+```bash
+export PROVIDER=gemini
+export GOOGLE_API_KEY=...
+# recommended (avoids Gemini embeddings 404s)
+export EMBEDDINGS_PROVIDER=local
+```
+
+**OpenAI**
+```bash
+export PROVIDER=openai
+export OPENAI_API_KEY=...
+export EMBEDDINGS_PROVIDER=openai
+```
+
+Optional:
+- `MODEL_NAME` overrides the LLM model name (applies to both providers).
+- For Gemini, you may need to use a model your key supports (often with `models/...` prefix).
+
 ```bash
 # Option A (OpenAI)
 export PROVIDER=openai
