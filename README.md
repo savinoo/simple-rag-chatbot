@@ -49,7 +49,14 @@ streamlit run app.py
 This repo ships with small demo docs + a golden set so you can generate a report and launch the UI quickly.
 
 ```bash
+# Option A (OpenAI)
+export PROVIDER=openai
 export OPENAI_API_KEY=...
+./run_demo.sh
+
+# Option B (Gemini)
+export PROVIDER=gemini
+export GOOGLE_API_KEY=...
 ./run_demo.sh
 ```
 

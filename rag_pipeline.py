@@ -26,6 +26,13 @@ from markdown_loader import load_markdown_with_sections
 from langchain_community.vectorstores import Chroma
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
+# Optional Gemini support
+try:
+    from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+except Exception:  # pragma: no cover
+    ChatGoogleGenerativeAI = None  # type: ignore
+    GoogleGenerativeAIEmbeddings = None  # type: ignore
+
 import config
 from audit_sqlite import QALogRecord, SQLiteAudit, now_iso
 
@@ -56,9 +63,25 @@ class JSONLLogger:
 class RAGPipeline:
     """RAG pipeline for document Q&A."""
 
-    def __init__(self, api_key: str, logger: Optional[JSONLLogger] = None):
-        self.api_key = api_key
-        self.embeddings = OpenAIEmbeddings(openai_api_key=api_key)
+    def __init__(self, logger: Optional[JSONLLogger] = None):
+        self.provider = getattr(config, "PROVIDER", "openai").lower()
+
+        if self.provider == "gemini":
+            if not getattr(config, "GOOGLE_API_KEY", ""):
+                raise ValueError("GOOGLE_API_KEY is required when PROVIDER=gemini")
+            if GoogleGenerativeAIEmbeddings is None or ChatGoogleGenerativeAI is None:
+                raise ImportError(
+                    "Gemini dependencies missing. Install: langchain-google-genai google-generativeai"
+                )
+            self.embeddings = GoogleGenerativeAIEmbeddings(
+                model=getattr(config, "GEMINI_EMBEDDINGS_MODEL", "text-embedding-004"),
+                google_api_key=getattr(config, "GOOGLE_API_KEY"),
+            )
+        else:
+            if not getattr(config, "OPENAI_API_KEY", ""):
+                raise ValueError("OPENAI_API_KEY is required when PROVIDER=openai")
+            self.embeddings = OpenAIEmbeddings(openai_api_key=getattr(config, "OPENAI_API_KEY"))
+
         self.vectorstore: Optional[Chroma] = None
 
         self.text_splitter = RecursiveCharacterTextSplitter(
@@ -67,11 +90,18 @@ class RAGPipeline:
             length_function=len,
         )
 
-        self.llm = ChatOpenAI(
-            model_name=config.MODEL_NAME,
-            temperature=config.TEMPERATURE,
-            openai_api_key=self.api_key,
-        )
+        if self.provider == "gemini":
+            self.llm = ChatGoogleGenerativeAI(
+                model=getattr(config, "MODEL_NAME", "gemini-1.5-flash"),
+                temperature=config.TEMPERATURE,
+                google_api_key=getattr(config, "GOOGLE_API_KEY"),
+            )
+        else:
+            self.llm = ChatOpenAI(
+                model_name=getattr(config, "MODEL_NAME", "gpt-4o-mini"),
+                temperature=config.TEMPERATURE,
+                openai_api_key=getattr(config, "OPENAI_API_KEY"),
+            )
 
         self.logger = logger or JSONLLogger(getattr(config, "LOG_PATH", "logs/qa.jsonl"))
         self.audit = SQLiteAudit(getattr(config, "AUDIT_DB_PATH", "logs/audit.db"))

@@ -31,7 +31,7 @@ def main():
     ap.add_argument("--out-dir", default="reports/latest")
     args = ap.parse_args()
 
-    pipe = RAGPipeline(config.OPENAI_API_KEY)
+    pipe = RAGPipeline()
 
     manifest = getattr(config, "MANIFEST_PATH", None)
     if not manifest:

@@ -16,7 +16,7 @@ st.set_page_config(
 
 # Initialize session state
 if 'rag' not in st.session_state:
-    st.session_state.rag = RAGPipeline(config.OPENAI_API_KEY)
+    st.session_state.rag = RAGPipeline()
 if 'messages' not in st.session_state:
     st.session_state.messages = []
 if 'documents_loaded' not in st.session_state:

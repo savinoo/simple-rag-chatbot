@@ -65,7 +65,7 @@ def main() -> int:
             errors.append({"doc": getattr(d, "path", None), "error": str(e)})
 
     # Rebuild index (correctness-first MVP)
-    pipe = RAGPipeline(config.OPENAI_API_KEY)
+    pipe = RAGPipeline()
     pipe.load_manifest_docs(docs)
 
     # Persist doc states

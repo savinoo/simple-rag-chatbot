@@ -2,11 +2,22 @@
 
 import os
 
-# OpenAI API Key
+# Provider
+# - openai: requires OPENAI_API_KEY
+# - gemini: requires GOOGLE_API_KEY
+PROVIDER = os.getenv("PROVIDER", "openai").lower()
+
+# OpenAI
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+
+# Gemini
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+GEMINI_EMBEDDINGS_MODEL = os.getenv("GEMINI_EMBEDDINGS_MODEL", "text-embedding-004")
 
 # Model settings
-MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
+MODEL_NAME = os.getenv("MODEL_NAME", OPENAI_MODEL if PROVIDER == "openai" else GEMINI_MODEL)
 TEMPERATURE = float(os.getenv("TEMPERATURE", "0.3"))
 
 # RAG settings
