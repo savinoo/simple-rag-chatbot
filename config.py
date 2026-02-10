@@ -2,10 +2,21 @@
 
 import os
 
-# Provider
+# Provider (LLM)
 # - openai: requires OPENAI_API_KEY
 # - gemini: requires GOOGLE_API_KEY
 PROVIDER = os.getenv("PROVIDER", "openai").lower()
+
+# Embeddings provider
+# - openai: OpenAI embeddings
+# - gemini: Gemini embeddings (often not enabled on some keys/accounts)
+# - local: sentence-transformers (offline)
+EMBEDDINGS_PROVIDER = os.getenv(
+    "EMBEDDINGS_PROVIDER",
+    "openai" if PROVIDER == "openai" else "local",
+).lower()
+
+LOCAL_EMBEDDINGS_MODEL = os.getenv("LOCAL_EMBEDDINGS_MODEL", "all-MiniLM-L6-v2")
 
 # OpenAI
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
@@ -14,7 +25,9 @@ OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 # Gemini
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
-GEMINI_EMBEDDINGS_MODEL = os.getenv("GEMINI_EMBEDDINGS_MODEL", "text-embedding-004")
+# Embeddings model: "models/embedding-001" is the most compatible default.
+# (Some accounts/regions/APIs may not support text-embedding-004 on v1beta.)
+GEMINI_EMBEDDINGS_MODEL = os.getenv("GEMINI_EMBEDDINGS_MODEL", "models/embedding-001")
 
 # Model settings
 MODEL_NAME = os.getenv("MODEL_NAME", OPENAI_MODEL if PROVIDER == "openai" else GEMINI_MODEL)

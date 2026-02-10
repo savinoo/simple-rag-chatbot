@@ -30,6 +30,11 @@ else
   fi
 fi
 
+# Recommended defaults
+# - OpenAI: embeddings via OpenAI
+# - Gemini: embeddings via local sentence-transformers (avoids Gemini embeddings 404)
+export EMBEDDINGS_PROVIDER="${EMBEDDINGS_PROVIDER:-$( [[ "$PROVIDER" == "gemini" ]] && echo local || echo openai )}"
+
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
@@ -37,6 +42,7 @@ python -m pip install -r requirements.txt
 
 export MANIFEST_PATH="$MANIFEST_PATH"
 export PROVIDER="${PROVIDER:-openai}"
+export EMBEDDINGS_PROVIDER="$EMBEDDINGS_PROVIDER"
 
 echo "[demo] Running retrieval eval -> reports/latest/"
 python eval_retrieval.py --golden data/golden.sample.jsonl --k 5 --out-dir reports/latest || true

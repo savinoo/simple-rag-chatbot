@@ -57,10 +57,20 @@ export OPENAI_API_KEY=...
 # Option B (Gemini)
 export PROVIDER=gemini
 export GOOGLE_API_KEY=...
+
+# Recommended: use local embeddings (avoids Gemini embeddings 404s)
+export EMBEDDINGS_PROVIDER=local
+
 ./run_demo.sh
 ```
 
 > Gemini uses `GOOGLE_API_KEY` (not `GEMINI_API_KEY`).
+>
+> If Gemini embeddings are not available for your key/account (common), use local embeddings:
+>
+> ```bash
+> export EMBEDDINGS_PROVIDER=local
+> ```
 
 What it does:
 - Loads docs from `manifest.example.yaml`

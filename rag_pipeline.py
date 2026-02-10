@@ -25,6 +25,7 @@ from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from markdown_loader import load_markdown_with_sections
 from langchain_community.vectorstores import Chroma
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
 # Optional Gemini support
 try:
@@ -65,21 +66,28 @@ class RAGPipeline:
 
     def __init__(self, logger: Optional[JSONLLogger] = None):
         self.provider = getattr(config, "PROVIDER", "openai").lower()
+        self.emb_provider = getattr(config, "EMBEDDINGS_PROVIDER", "openai").lower()
 
-        if self.provider == "gemini":
+        # Embeddings
+        if self.emb_provider == "local":
+            self.embeddings = HuggingFaceEmbeddings(
+                model_name=getattr(config, "LOCAL_EMBEDDINGS_MODEL", "all-MiniLM-L6-v2")
+            )
+        elif self.emb_provider == "gemini":
             if not getattr(config, "GOOGLE_API_KEY", ""):
-                raise ValueError("GOOGLE_API_KEY is required when PROVIDER=gemini")
-            if GoogleGenerativeAIEmbeddings is None or ChatGoogleGenerativeAI is None:
+                raise ValueError("GOOGLE_API_KEY is required when EMBEDDINGS_PROVIDER=gemini")
+            if GoogleGenerativeAIEmbeddings is None:
                 raise ImportError(
                     "Gemini dependencies missing. Install: langchain-google-genai google-generativeai"
                 )
             self.embeddings = GoogleGenerativeAIEmbeddings(
-                model=getattr(config, "GEMINI_EMBEDDINGS_MODEL", "text-embedding-004"),
+                model=getattr(config, "GEMINI_EMBEDDINGS_MODEL", "models/embedding-001"),
                 google_api_key=getattr(config, "GOOGLE_API_KEY"),
             )
         else:
+            # openai
             if not getattr(config, "OPENAI_API_KEY", ""):
-                raise ValueError("OPENAI_API_KEY is required when PROVIDER=openai")
+                raise ValueError("OPENAI_API_KEY is required when EMBEDDINGS_PROVIDER=openai")
             self.embeddings = OpenAIEmbeddings(openai_api_key=getattr(config, "OPENAI_API_KEY"))
 
         self.vectorstore: Optional[Chroma] = None
