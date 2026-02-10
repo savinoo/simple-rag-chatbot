@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional
 
-from langchain.schema import Document
+from langchain_core.documents import Document
 
 
 _heading_re = re.compile(r"^(#{1,6})\s+(.*)$")

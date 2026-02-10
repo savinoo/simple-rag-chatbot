@@ -1,5 +1,5 @@
 documents:
-  - id: sop-returns
+  - id: policy-returns
     title: Returns & Exchanges Policy
     path: docs/policies/returns.md
     tags: [policy, customer-support]
@@ -7,6 +7,6 @@ documents:
 
   - id: sop-qc
     title: QC Checklist
-    path: docs/sops/qc_checklist.pdf
+    path: docs/sops/qc_checklist.md
     tags: [sop, warehouse]
     allowed_roles: [warehouse, qc, management]

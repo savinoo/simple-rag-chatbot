@@ -37,6 +37,10 @@ wheels/
 # ChromaDB
 chroma/
 
+# Local artifacts
+logs/
+reports/
+
 # Streamlit
 .streamlit/
 

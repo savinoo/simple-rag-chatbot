@@ -19,8 +19,8 @@ import time
 from dataclasses import dataclass
 from typing import Iterable, List, Optional, Tuple
 
-from langchain.schema import Document
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_core.documents import Document
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from markdown_loader import load_markdown_with_sections
 from langchain_community.vectorstores import Chroma
