@@ -1,6 +1,14 @@
-# Simple RAG Chatbot
+# Simple RAG Chatbot (Upgraded)
 
 A lightweight Retrieval-Augmented Generation (RAG) chatbot built with LangChain and Streamlit.
+
+This project is being upgraded to better match a **private internal “knowledge brain”** spec:
+- **Answer only from sources** (no guessing)
+- **Citations in every answer**
+- **“Not in KB yet.”** fallback when retrieval is weak
+- **Manifest-driven ingestion (local)** as a stepping stone toward Google Sheets/Drive manifests
+- **Audit logging** of Q/A + sources (JSONL)
+- **Retrieval evaluation** (golden set → recall@k)
 
 ## Features
 
@@ -8,7 +16,10 @@ A lightweight Retrieval-Augmented Generation (RAG) chatbot built with LangChain 
 - 🔍 Vector search with ChromaDB
 - 🤖 OpenAI GPT integration
 - 💬 Interactive Streamlit interface
-- 🎯 Context-aware responses
+- ✅ **Grounded answers with citations** (`[S1]`, `[S2]`)
+- 🛑 **Safety**: if retrieval confidence is below a threshold, respond:
+  - `Not in KB yet. Please add the relevant SOP/policy document to the knowledge base.`
+- 🧾 Audit logs written to `logs/qa.jsonl`
 
 ## Tech Stack
 
@@ -21,62 +32,79 @@ A lightweight Retrieval-Augmented Generation (RAG) chatbot built with LangChain 
 ## Installation
 
 ```bash
-# Clone the repository
 git clone https://github.com/savinoo/simple-rag-chatbot.git
 cd simple-rag-chatbot
-
-# Install dependencies
 pip install -r requirements.txt
-
-# Set your OpenAI API key
 export OPENAI_API_KEY="your-api-key-here"
 ```
 
 ## Usage
 
 ```bash
-# Run the Streamlit app
 streamlit run app.py
 ```
 
-Then:
-1. Upload your documents (PDF, TXT, or Markdown)
-2. Ask questions about the content
-3. Get accurate, context-aware answers
+You can either:
+1) Upload documents in the sidebar, or
+2) Load documents from a local manifest (see below).
 
-## How It Works
+## Manifest-driven ingestion (local)
 
-1. **Document Loading**: Upload files via Streamlit interface
-2. **Text Splitting**: Documents are chunked for optimal retrieval
-3. **Embedding**: Text chunks are embedded using OpenAI embeddings
-4. **Vector Storage**: Embeddings stored in ChromaDB
-5. **Retrieval**: User questions retrieve relevant chunks
-6. **Generation**: GPT generates answers based on retrieved context
+Create a manifest JSON file (example: `manifest.example.json`):
+
+```json
+{ "documents": ["docs/policies/returns.md", "docs/sops/qc_checklist.pdf"] }
+```
+
+Then set `MANIFEST_PATH` (env var) or paste it in the sidebar:
+
+```bash
+export MANIFEST_PATH=manifest.example.json
+```
 
 ## Configuration
 
-Edit `config.py` to customize:
-- Chunk size and overlap
-- Number of retrieved documents
-- Model selection (GPT-3.5/GPT-4)
-- Temperature and other LLM parameters
+Configuration is via env vars (see `config.py`):
+- `MODEL_NAME` (default: `gpt-4o-mini`)
+- `K_DOCUMENTS` (default: `5`)
+- `RETRIEVAL_THRESHOLD` (default: `0.35`)
+- `LOG_PATH` (default: `logs/qa.jsonl`)
 
-## Example Use Cases
+## Retrieval evaluation (recall@k)
 
-- Internal knowledge base search
-- Customer support documentation
-- Research paper Q&A
-- Technical documentation assistant
+Golden set JSONL format (one per line):
+
+```json
+{"question":"What is the return window?","expected_sources":["returns.md"]}
+```
+
+Run:
+
+```bash
+python eval_retrieval.py --golden data/golden.jsonl --k 5
+```
+
+> Note: for evaluation, the pipeline loads docs via `MANIFEST_PATH`.
+
+## Roadmap (next upgrades)
+
+To fully match the Upwork job requirements, the next steps are:
+- Google Drive/Docs/Sheets ingestion (via Google APIs)
+- Scheduled daily sync + manual re-index controls
+- Doc-level / role-based access control
+- Slack bot interface
+- Better section-level citations (heading-aware parsing)
 
 ## Project Structure
 
 ```
 simple-rag-chatbot/
-├── app.py              # Streamlit application
-├── rag_pipeline.py     # RAG implementation
-├── config.py           # Configuration
-├── requirements.txt    # Dependencies
-├── .gitignore
+├── app.py
+├── rag_pipeline.py
+├── config.py
+├── eval_retrieval.py
+├── manifest.example.json
+├── requirements.txt
 └── README.md
 ```
 
@@ -88,7 +116,3 @@ MIT
 
 Lucas Lorenzo Savino  
 AI Engineer | Agent Development & MLOps
-
----
-
-*Part of my AI engineering portfolio demonstrating RAG implementation skills.*

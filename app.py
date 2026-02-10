@@ -28,15 +28,17 @@ st.markdown("Upload documents and ask questions about them.")
 
 # Sidebar for document upload
 with st.sidebar:
-    st.header("📚 Document Upload")
-    
+    st.header("📚 Knowledge Base")
+
+    # Option A: upload files
+    st.subheader("Upload documents")
     uploaded_files = st.file_uploader(
         "Upload documents",
         accept_multiple_files=True,
         type=['pdf', 'txt', 'md']
     )
-    
-    if uploaded_files and st.button("Process Documents"):
+
+    if uploaded_files and st.button("Process Uploads"):
         with st.spinner("Processing documents..."):
             try:
                 st.session_state.rag.load_documents(uploaded_files)
@@ -44,7 +46,24 @@ with st.sidebar:
                 st.success(f"✅ Loaded {len(uploaded_files)} document(s)")
             except Exception as e:
                 st.error(f"❌ Error: {str(e)}")
-    
+
+    # Option B: manifest-driven ingestion (local)
+    st.subheader("Manifest-driven ingestion (local)")
+    st.caption("Use a local manifest JSON like manifest.example.json and set MANIFEST_PATH env var.")
+    manifest_path = st.text_input("MANIFEST_PATH", value=(config.MANIFEST_PATH or ""))
+    if manifest_path and st.button("Load from Manifest"):
+        with st.spinner("Loading manifest + indexing..."):
+            try:
+                import json
+                from pathlib import Path
+
+                m = json.loads(Path(manifest_path).read_text(encoding="utf-8"))
+                st.session_state.rag.load_manifest_paths(m["documents"])
+                st.session_state.documents_loaded = True
+                st.success(f"✅ Loaded {len(m['documents'])} document(s) from manifest")
+            except Exception as e:
+                st.error(f"❌ Error: {str(e)}")
+
     st.divider()
     
     # Settings
@@ -82,13 +101,15 @@ else:
                         k=k_docs
                     )
                     st.markdown(response["answer"])
-                    
-                    # Show sources
+
+                    # Show sources (refs) + retrieval debug
                     with st.expander("📄 Sources"):
-                        for i, doc in enumerate(response["sources"], 1):
-                            st.markdown(f"**Source {i}:**")
-                            st.text(doc[:200] + "...")
-                    
+                        for i, ref in enumerate(response.get("sources", []), 1):
+                            st.markdown(f"**Source {i}:** {ref}")
+
+                    with st.expander("🔎 Retrieval (debug)"):
+                        st.json(response.get("retrieval", []))
+
                     st.session_state.messages.append({
                         "role": "assistant",
                         "content": response["answer"]
