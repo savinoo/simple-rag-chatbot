@@ -19,7 +19,7 @@ This project is being upgraded to better match a **private internal “knowledge
 - ✅ **Grounded answers with citations** (`[S1]`, `[S2]`)
 - 🛑 **Safety**: if retrieval confidence is below a threshold, respond:
   - `Not in KB yet. Please add the relevant SOP/policy document to the knowledge base.`
-- 🧾 Audit logs written to `logs/qa.jsonl`
+- 🧾 Audit logs written to `logs/qa.jsonl` + SQLite audit DB (`logs/audit.db`) with Admin viewer
 
 ## Tech Stack
 
@@ -42,6 +42,28 @@ export OPENAI_API_KEY="your-api-key-here"
 
 ```bash
 streamlit run app.py
+```
+
+## Demo (1 command)
+
+This repo ships with small demo docs + a golden set so you can generate a report and launch the UI quickly.
+
+```bash
+export OPENAI_API_KEY=...
+./run_demo.sh
+```
+
+What it does:
+- Loads docs from `manifest.example.yaml`
+- Runs `eval_retrieval.py` and writes `reports/latest/report.md`
+- Starts the Streamlit UI (Chat + Admin)
+
+### Optional
+Use a different manifest:
+
+```bash
+export MANIFEST_PATH=path/to/your-manifest.yaml
+./run_demo.sh
 ```
 
 You can either:
@@ -81,7 +103,7 @@ Golden set JSONL format (one per line):
 Run:
 
 ```bash
-python eval_retrieval.py --golden data/golden.jsonl --k 5
+python eval_retrieval.py --golden data/golden.sample.jsonl --k 5 --out-dir reports/latest
 ```
 
 > Note: for evaluation, the pipeline loads docs via `MANIFEST_PATH`.
