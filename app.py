@@ -57,7 +57,7 @@ with st.sidebar:
                 from manifest_loader import load_manifest
 
                 docs = load_manifest(manifest_path)
-                st.session_state.rag.load_manifest_paths([d.path for d in docs])
+                st.session_state.rag.load_manifest_docs(docs)
                 st.session_state.documents_loaded = True
                 st.success(f"✅ Loaded {len(docs)} document(s) from manifest")
             except Exception as e:
@@ -69,6 +69,14 @@ with st.sidebar:
     st.header("⚙️ Settings")
     temperature = st.slider("Temperature", 0.0, 1.0, config.TEMPERATURE, 0.1)
     k_docs = st.slider("Retrieved Documents", 1, 10, config.K_DOCUMENTS)
+
+    st.header("🔐 Access (demo)")
+    role = st.selectbox(
+        "Role (used to filter retrieval when manifest provides allowed_roles)",
+        options=["(all)", "cs", "warehouse", "qc", "management"],
+        index=0,
+    )
+    st.session_state["role"] = role
     
     if st.button("Clear Chat"):
         st.session_state.messages = []
@@ -99,6 +107,7 @@ with chat_tab:
                             prompt,
                             temperature=temperature,
                             k=k_docs,
+                            role=st.session_state.get("role"),
                         )
                         st.markdown(response["answer"])
 

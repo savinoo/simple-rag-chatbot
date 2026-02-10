@@ -21,7 +21,8 @@ from typing import Iterable, List, Optional, Tuple
 
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.document_loaders import PyPDFLoader, TextLoader, UnstructuredMarkdownLoader
+from langchain_community.document_loaders import PyPDFLoader, TextLoader
+from markdown_loader import load_markdown_with_sections
 from langchain_community.vectorstores import Chroma
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
@@ -104,13 +105,34 @@ class RAGPipeline:
             docs.extend(self._load_path(p, source_name=os.path.basename(p)))
         self._index_documents(docs)
 
+    def load_manifest_docs(self, manifest_docs: Iterable[object]) -> None:
+        """Load and index documents from manifest entries that include metadata.
+
+        Expected fields (duck-typed): path, id, title, tags, allowed_roles.
+        """
+        docs: List[Document] = []
+        for md in manifest_docs:
+            path = os.path.expanduser(getattr(md, "path"))
+            source_name = os.path.basename(path)
+            loaded = self._load_path(path, source_name=source_name)
+            for d in loaded:
+                d.metadata = d.metadata or {}
+                d.metadata["doc_id"] = getattr(md, "id", None)
+                d.metadata["title"] = getattr(md, "title", None)
+                d.metadata["tags"] = list(getattr(md, "tags", []) or [])
+                d.metadata["allowed_roles"] = list(getattr(md, "allowed_roles", []) or [])
+            docs.extend(loaded)
+        self._index_documents(docs)
+
     def _load_path(self, path: str, source_name: str) -> List[Document]:
+        if path.lower().endswith(".md"):
+            loaded = load_markdown_with_sections(path, source_name=source_name)
+            return loaded
+
         if path.lower().endswith(".pdf"):
             loader = PyPDFLoader(path)
         elif path.lower().endswith(".txt"):
             loader = TextLoader(path, encoding="utf-8")
-        elif path.lower().endswith(".md"):
-            loader = UnstructuredMarkdownLoader(path)
         else:
             return []
 
@@ -119,9 +141,6 @@ class RAGPipeline:
         for d in loaded:
             d.metadata = d.metadata or {}
             d.metadata.setdefault("source", source_name)
-            if "page" in d.metadata:
-                # keep as-is
-                pass
         return loaded
 
     def _index_documents(self, documents: List[Document]) -> None:
@@ -147,21 +166,40 @@ class RAGPipeline:
     # Retrieval + Generation
     # ----------------------
 
-    def _retrieve(self, question: str, k: int) -> List[RetrievedChunk]:
+    def _retrieve(self, question: str, k: int, role: Optional[str] = None) -> List[RetrievedChunk]:
         if not self.vectorstore:
             raise ValueError("No documents loaded. Please upload documents first.")
 
-        # Chroma returns relevance scores in [0,1] (higher is better)
+        # Retrieve extra then filter (Chroma metadata filters vary by backend)
+        raw_k = max(k * 3, k)
+
         pairs: List[Tuple[Document, float]] = self.vectorstore.similarity_search_with_relevance_scores(
-            question, k=k
+            question, k=raw_k
         )
 
+        def allowed(doc: Document) -> bool:
+            if not role or role == "(all)":
+                return True
+            roles = (doc.metadata or {}).get("allowed_roles") or []
+            # If no roles are set, treat as public within the app
+            if not roles:
+                return True
+            return role in roles
+
+        filtered = [(d, s) for (d, s) in pairs if allowed(d)][:k]
+
         out: List[RetrievedChunk] = []
-        for i, (doc, score) in enumerate(pairs, start=1):
+        for i, (doc, score) in enumerate(filtered, start=1):
             out.append(RetrievedChunk(doc=doc, score=float(score), idx=i))
         return out
 
-    def query(self, question: str, temperature: Optional[float] = None, k: Optional[int] = None):
+    def query(
+        self,
+        question: str,
+        temperature: Optional[float] = None,
+        k: Optional[int] = None,
+        role: Optional[str] = None,
+    ):
         """Query the RAG system.
 
         Behavior:
@@ -173,7 +211,7 @@ class RAGPipeline:
         k = int(k or config.K_DOCUMENTS)
         threshold = float(getattr(config, "RETRIEVAL_THRESHOLD", 0.35))
 
-        retrieved = self._retrieve(question, k=k)
+        retrieved = self._retrieve(question, k=k, role=role)
         best_score = retrieved[0].score if retrieved else 0.0
 
         if not retrieved or best_score < threshold:
@@ -208,9 +246,19 @@ class RAGPipeline:
         for r in retrieved:
             md = r.doc.metadata or {}
             src = md.get("source", "unknown")
+            title = md.get("title")
+            section = md.get("section_path")
             chunk = md.get("chunk")
             page = md.get("page")
-            ref = f"{src} (chunk {chunk}" + (f", page {page}" if page is not None else "") + ")"
+
+            label = title or src
+            parts = [f"chunk {chunk}"] if chunk is not None else []
+            if page is not None:
+                parts.append(f"page {page}")
+            if section:
+                parts.append(f"section {section}")
+
+            ref = f"{label} ({', '.join(parts)})" if parts else label
             source_map.append({"id": r.idx, "ref": ref, "metadata": md})
             ctx_lines.append(f"[S{r.idx}] {ref}\n{r.doc.page_content}")
 
