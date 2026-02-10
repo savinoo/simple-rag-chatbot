@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import tempfile
 import time
 from dataclasses import dataclass
@@ -321,7 +322,7 @@ class RAGPipeline:
         if "[S" not in answer_text and "Not in KB yet" not in answer_text:
             answer_text = "Not in KB yet. Please add the relevant SOP/policy document to the knowledge base."
 
-        used_ids = sorted({int(x[2:]) for x in _extract_citation_tokens(answer_text)})
+        used_ids = sorted({int(m.group(1)) for m in re.finditer(r"\[S(\d+)\]", answer_text)})
         used_sources = [s for s in source_map if s["id"] in used_ids] if used_ids else source_map
 
         # Append sources section if missing
