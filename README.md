@@ -1,14 +1,21 @@
-# Simple RAG Chatbot (Upgraded)
+# Enterprise Knowledge Base RAG System
 
-A lightweight Retrieval-Augmented Generation (RAG) chatbot built with LangChain and Streamlit.
+![Python](https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white)
+![LangChain](https://img.shields.io/badge/LangChain-RAG-green)
+![ChromaDB](https://img.shields.io/badge/ChromaDB-Vector_DB-orange)
+![Streamlit](https://img.shields.io/badge/Streamlit-UI-red)
 
-This project is being upgraded to better match a **private internal “knowledge brain”** spec:
-- **Answer only from sources** (no guessing)
-- **Citations in every answer**
-- **“Not in KB yet.”** fallback when retrieval is weak
-- **Manifest-driven ingestion (local)** as a stepping stone toward Google Sheets/Drive manifests
-- **Audit logging** of Q/A + sources (JSONL)
-- **Retrieval evaluation** (golden set → recall@k)
+A production-ready Retrieval-Augmented Generation (RAG) system built for **enterprise internal knowledge bases** (SOPs, policies, procedures).
+
+## 🎯 Why This Matters
+
+Unlike generic RAG chatbots that "guess" answers, this system is engineered for **trust and compliance**:
+
+- **✅ Mandatory Citations** — Every answer links back to source documents (`[S1]`, `[S2]`)
+- **✅ No Hallucinations** — "Not in KB yet" fallback when retrieval confidence is low
+- **✅ Full Audit Trail** — JSONL + SQLite logging of every Q&A interaction with sources
+- **✅ Quantitative Evaluation** — Built-in recall@k metrics via golden dataset
+- **✅ Manifest-Driven Ingestion** — Controlled, reproducible KB updates (JSON/YAML)
 
 ## Features
 
